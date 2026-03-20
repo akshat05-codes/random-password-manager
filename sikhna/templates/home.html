@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Password Generator</title>
+
+{% load static %}
+
+<style>
+
+body{
+font-family:Arial;
+background: url("{% static 'images/bg.jpg' %}") no-repeat center center/cover;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+margin:0;
+position:relative;
+}
+
+/* overlay */
+body::before{
+content:"";
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.6);
+backdrop-filter: blur(5px);
+z-index:0;
+}
+
+/* DARK MODE */
+.dark{
+background:#121212 !important;
+color:white;
+}
+
+.dark .container{
+background:#1e1e1e;
+color:white;
+}
+
+.container{
+background:white;
+padding:35px;
+border-radius:12px;
+width:350px;
+text-align:center;
+box-shadow:0 15px 35px rgba(0,0,0,0.3);
+position:relative;
+z-index:1;
+}
+
+h1{
+margin-bottom:20px;
+}
+
+input, textarea{
+padding:8px;
+width:90%;
+border-radius:5px;
+border:1px solid #ccc;
+}
+
+.options{
+text-align:left;
+margin-top:10px;
+}
+
+button{
+margin-top:10px;
+padding:10px 15px;
+border:none;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+.generate{ background:#667eea; }
+.copy{ background:#28a745; }
+.noteBtn{ background:#ff9800; }
+
+button:hover{
+opacity:0.9;
+}
+
+#result{
+margin-top:20px;
+font-size:18px;
+font-weight:bold;
+word-break:break-all;
+}
+
+.strength{
+margin-top:10px;
+height:8px;
+background:#ddd;
+border-radius:5px;
+overflow:hidden;
+}
+
+.bar{
+height:100%;
+width:0%;
+background:red;
+}
+
+ul{
+text-align:left;
+padding-left:20px;
+}
+
+footer{
+margin-top:20px;
+font-size:12px;
+color:gray;
+}
+
+/* DARK BUTTON */
+.darkToggle{
+position:absolute;
+top:20px;
+right:20px;
+z-index:2;
+padding:8px 12px;
+background:#444;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+/* NOTEPAD */
+#notepad{
+display:none;
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+width:350px;
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 0 20px rgba(0,0,0,0.5);
+z-index:1000;
+}
+
+.dark #notepad{
+background:#1e1e1e;
+color:white;
+}
+<a href="/logout/">
+<button style="background:red;">Logout</button>
+</a>
+</style>
+
+</head>
+
+<body>
+
+<!-- DARK MODE BUTTON -->
+<button class="darkToggle" onclick="toggleDark()">🌙</button>
+
+<div class="container">
+
+<h1>🔐 Password Generator</h1>
+
+<label>Password Length</label><br>
+<input type="number" id="length" value="10"><br>
+
+<div class="options">
+<label><input type="checkbox" id="uppercase" checked> Uppercase</label><br>
+<label><input type="checkbox" id="lowercase" checked> Lowercase</label><br>
+<label><input type="checkbox" id="numbers" checked> Numbers</label><br>
+<label><input type="checkbox" id="symbols"> Symbols</label>
+</div>
+
+<button class="generate" onclick="generate()">Generate</button>
+<button class="copy" onclick="copyPassword()">Copy</button>
+<button class="noteBtn" onclick="openNotepad()">📝 Notepad</button>
+
+<div id="result"></div>
+
+<div class="strength">
+<div class="bar" id="strengthBar"></div>
+</div>
+
+<div id="strengthText"></div>
+
+<h3>Last Passwords</h3>
+<ul id="history"></ul>
+
+<footer>Developed by Akshat 🚀</footer>
+
+</div>
+
+<!-- NOTEPAD -->
+<div id="notepad">
+
+<h3>📝 Save Login</h3>
+
+<ul>
+{% for note in notes %}
+<li><b>{{ note.site }}</b> | {{ note.username }} | {{ note.note }}</li>
+{% endfor %}
+</ul>
+
+<input type="text" id="noteSite" placeholder="Website"><br><br>
+<input type="text" id="noteUser" placeholder="Username"><br><br>
+
+<textarea id="noteArea" rows="4" placeholder="Write password or note..."></textarea><br>
+
+<button style="background:#28a745;" onclick="saveNote()">💾 Save</button>
+<button style="background:#2196f3;" onclick="downloadNote()">⬇ Download</button>
+<button style="background:#f44336;" onclick="closeNotepad()">❌ Close</button>
+
+</div>
+
+<script>
+
+let history = []
+
+function generate(){
+let length = document.getElementById("length").value
+let numbers = document.getElementById("numbers").checked
+let symbols = document.getElementById("symbols").checked
+let uppercase = document.getElementById("uppercase").checked
+let lowercase = document.getElementById("lowercase").checked
+
+fetch(`/generate/?length=${length}&numbers=${numbers}&symbols=${symbols}&uppercase=${uppercase}&lowercase=${lowercase}`)
+.then(res=>res.text())
+.then(data=>{
+document.getElementById("result").innerText=data
+updateStrength(data)
+addToHistory(data)
+})
+}
+
+function updateStrength(data){
+let bar=document.getElementById("strengthBar")
+let text=document.getElementById("strengthText")
+
+if(data.length < 8){
+bar.style.width="30%"
+bar.style.background="red"
+text.innerText="Weak Password"
+}
+else if(data.length < 12){
+bar.style.width="60%"
+bar.style.background="orange"
+text.innerText="Medium Password"
+}
+else{
+bar.style.width="100%"
+bar.style.background="green"
+text.innerText="Strong Password"
+}
+}
+
+function addToHistory(pass){
+history.unshift(pass)
+if(history.length > 5) history.pop()
+
+document.getElementById("history").innerHTML =
+history.map(p=>`<li>${p}</li>`).join("")
+}
+
+function copyPassword(){
+let text=document.getElementById("result").innerText
+navigator.clipboard.writeText(text)
+alert("Copied ✅")
+}
+
+function toggleDark(){
+document.body.classList.toggle("dark")
+}
+
+function openNotepad(){
+document.getElementById("notepad").style.display="block"
+
+let pass = document.getElementById("result").innerText
+document.getElementById("noteArea").value = pass ? "Password: " + pass : ""
+}
+
+function closeNotepad(){
+document.getElementById("notepad").style.display="none"
+}
+
+function saveNote(){
+
+let site = document.getElementById("noteSite").value.trim()
+let user = document.getElementById("noteUser").value.trim()
+let text = document.getElementById("noteArea").value.trim()
+
+if(!site || !user || !text){
+alert("⚠️ Fill all fields")
+return
+}
+
+fetch('/save-note/', {
+method:'POST',
+headers:{
+'Content-Type':'application/x-www-form-urlencoded',
+},
+body:`site=${site}&username=${user}&note=${text}`
+})
+.then(res=>res.text())
+.then(()=>{
+alert("✅ Saved Successfully")
+location.reload()
+})
+}
+
+function downloadNote(){
+
+let text = document.getElementById("noteArea").value
+
+let blob = new Blob([text], {type:"text/plain"})
+let link = document.createElement("a")
+
+link.href = URL.createObjectURL(blob)
+link.download = "note.txt"
+link.click()
+}
+
+</script>
+
+</body>
+</html>

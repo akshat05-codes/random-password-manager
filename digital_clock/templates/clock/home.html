@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Advanced Digital Clock</title>
+
+    <style>
+        body {
+            background-color: black;
+            color: #00ffcc;
+            font-family: Arial;
+            text-align: center;
+            margin-top: 100px;
+            transition: 0.5s;
+        }
+
+        #clock {
+            font-size: 60px;
+            margin: 20px;
+        }
+
+        #date {
+            font-size: 25px;
+            margin-bottom: 20px;
+        }
+
+        button, select, input {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        .light {
+            background-color: white;
+            color: black;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Digital Clock</h1>
+
+    <div id="date"></div>
+    <div id="clock"></div>
+
+    <!-- Buttons -->
+    <button onclick="toggleTheme()">🌗 Theme</button>
+    <button onclick="toggleFormat()">⏰ Format</button>
+
+    <br><br>
+
+    <!-- Timezone -->
+    <select onchange="changeTimezone(this.value)">
+        <option value="Asia/Kolkata">India</option>
+        <option value="America/New_York">USA</option>
+        <option value="Europe/London">London</option>
+        <option value="Asia/Tokyo">Japan</option>
+    </select>
+
+    <br><br>
+
+    <!-- Alarm -->
+    <input type="time" id="alarmTime">
+    <button onclick="setAlarm()">Set Alarm</button>
+
+    <h3 id="alarmStatus"></h3>
+
+    <script>
+        let is24Hour = true;
+        let timezone = "Asia/Kolkata";
+        let alarmTime = null;
+
+        let days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+        function updateClock() {
+            let now = new Date();
+
+            // timezone conversion
+            let options = { timeZone: timezone, hour12: !is24Hour };
+            let timeString = now.toLocaleTimeString("en-US", options);
+
+            let date = now.toLocaleDateString("en-US", { timeZone: timezone });
+            let day = days[new Date().getDay()];
+
+            document.getElementById("clock").innerText = timeString;
+            document.getElementById("date").innerText = day + ", " + date;
+
+            // Alarm check
+            if (alarmTime === timeString) {
+                alert("⏰ Alarm Ringing!");
+                alarmTime = null;
+            }
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle("light");
+        }
+
+        function toggleFormat() {
+            is24Hour = !is24Hour;
+        }
+
+        function changeTimezone(zone) {
+            timezone = zone;
+        }
+
+        function setAlarm() {
+            let input = document.getElementById("alarmTime").value;
+
+            if (input === "") {
+                alert("Please select time");
+                return;
+            }
+
+            // Convert input to match display format
+            let date = new Date();
+            let [hours, minutes] = input.split(":");
+
+            date.setHours(hours);
+            date.setMinutes(minutes);
+            date.setSeconds(0);
+
+            let options = { hour12: !is24Hour };
+            alarmTime = date.toLocaleTimeString("en-US", options);
+
+            document.getElementById("alarmStatus").innerText = "Alarm set for " + alarmTime;
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+
+</body>
+</html>
